@@ -1,0 +1,74 @@
+# Define the list of URLs and the corresponding repo names
+$repoUrls = @(
+    "https://planetaryrestorationarchive.com/YMM/proposal/1/index.html",
+    "https://planetaryrestorationarchive.com/ref/role/rare/index.html",
+    "https://planetaryrestorationarchive.com/ref/role/index.html",
+    "https://planetaryrestorationarchive.com/ref/meta/1/v1/index.html",
+    "https://planetaryrestorationarchive.com/ref/meta/1/v2/index.html",
+    "https://planetaryrestorationarchive.com/ref/meta/1/index.html",
+    "https://planetaryrestorationarchive.com/ref/meta/genesis/index.html",
+    "https://planetaryrestorationarchive.com/ref/meta/genesis/v2/index.html",
+    "https://planetaryrestorationarchive.com/ref/meta/genesis/v3/index.html",
+    "https://planetaryrestorationarchive.com/ref/meta/genesis/v4/index.html",
+    "https://planetaryrestorationarchive.com/ref/meta/genesis/v5/index.html"
+    # Add the rest of your URLs here
+)
+
+$repoNames = @(
+    "YMM-proposal-1",
+    "ref-role-rare",
+    "ref-role",
+    "ref-meta-1-v1",
+    "ref-meta-1-v2",
+    "ref-meta-1",
+    "ref-meta-genesis",
+    "ref-meta-genesis-v2",
+    "ref-meta-genesis-v3",
+    "ref-meta-genesis-v4",
+    "ref-meta-genesis-v5"
+    # Add the corresponding repo names here
+)
+
+# Make sure you are logged in to GitHub CLI (you've confirmed you are already logged in)
+# Check if the login is successful
+$authStatus = gh auth status
+if ($authStatus -notlike "Logged in as*") {
+    Write-Host "Not logged in to GitHub. Please run 'gh auth login' first." -ForegroundColor Red
+    exit
+}
+
+# Iterate through each URL
+for ($i = 0; $i -lt $repoUrls.Count; $i++) {
+    $url = $repoUrls[$i]
+    $repoName = $repoNames[$i]
+
+    # Download the index.html file
+    $fileName = "$repoName.html"
+    Write-Host "Downloading $fileName from $url..."
+    Invoke-WebRequest -Uri $url -OutFile $fileName
+
+    # Create the GitHub repository
+    Write-Host "Creating repository: $repoName..."
+    try {
+        gh repo create $repoName --public --confirm
+    } catch {
+        Write-Host "Failed to create repository: $repoName. It may already exist." -ForegroundColor Yellow
+    }
+
+    # Initialize the local repository
+    Write-Host "Initializing Git repository for $repoName..."
+    git init
+    git add $fileName
+    git commit -m "Initial commit of index.html"
+
+    # Push the file to the GitHub repository
+    Write-Host "Pushing $fileName to $repoName repository..."
+    git remote add origin "https://github.com/your-username/$repoName.git"
+    git push -u origin master
+
+    # Enable GitHub Pages
+    Write-Host "Enabling GitHub Pages for $repoName..."
+    gh pages set --source "master:/$fileName"
+
+    Write-Host "Completed for $repoName!" -ForegroundColor Green
+}
